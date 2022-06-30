@@ -153,7 +153,8 @@ class FilamentScalePlugin(octoprint.plugin.SettingsPlugin,
 
     def scale_weight(self) -> float:
         self._logger.debug("Scale last_value: [{}], last_value_time: [{}]".format(self.scale.last_value, self.scale.last_value_time))
-        if time.time - self.scale.last_value_time < 5:
+
+        if time.time() - self.scale.last_value_time < 5:
             weight = self.scale.last_value
         else:
             weight = self.scale.get_weight()
