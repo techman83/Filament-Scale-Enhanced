@@ -1,7 +1,7 @@
 /*
  * View model for OctoPrint-Filament_scale
  *
- * Author: Victor Noordhoek
+ * Author: Victor Noordhoek, Erik Hess
  * License: AGPLv3
  */
  
@@ -10,75 +10,39 @@
 $(function() {
     function Filament_scaleViewModel(parameters) {
         var self = this;
+
 		self.printerState = parameters[0]
 		self.settings = parameters[1]
+
 		self.last_raw_weight = 0
 		self.calibrate_known_weight = 0
-        // assign the injected parameters, e.g.:
-        // self.loginStateViewModel = parameters[0];
-        // self.settingsViewModel = parameters[1];
 
-        // TODO: Implement your plugin's view model here.
 		self.printerState.filamentRemainingString = ko.observable("Loading...")
-		self.tare = function(){
-			
-			self.settings.settings.plugins.filament_scale.tare(self.last_raw_weight)
-			weight = self.getWeight(self.last_raw_weight)
-			self.settings.settings.plugins.filament_scale.lastknownweight(weight)
-			
-			self.printerState.filamentRemainingString(self.getOutputWeight(weight))
-		};
-		self.calibrate = function(){
-			
-			weight = Math.round((self.last_raw_weight - self.settings.settings.plugins.filament_scale.tare()))
-			if (weight != 0 && self.calibrate_known_weight != 0){
-				self.settings.settings.plugins.filament_scale.reference_unit(weight / self.calibrate_known_weight)
-				weight = self.getWeight(self.last_raw_weight)
-				self.settings.settings.plugins.filament_scale.lastknownweight(weight)
-				self.printerState.filamentRemainingString(self.getOutputWeight(weight))
-			} else {
-				error_message = {"tare": self.settings.settings.plugins.filament_scale.tare(),
-								"r_u": self.settings.settings.plugins.filament_scale.reference_unit(),
-								"parsed_r_u": parseInt(self.settings.settings.plugins.filament_scale.reference_unit()),
-								"known_weight": self.calibrate_known_weight,
-								"spool_weight": self.settings.settings.plugins.filament_scale.spool_weight(),
-								"weight": weight,
-								"raw_weight":self.last_raw_weight}
-				console.log(error_message)
-			}
-			
-		}
-		self.onDataUpdaterPluginMessage = function(plugin, message){
+
+		self.onDataUpdaterPluginMessage = function(plugin, message) {
 			if (plugin != "filament_scale") return;
 				
 			self.last_raw_weight = parseInt(message)
-			if (parseInt(message) == 8388608 || parseInt(message) == 8388607){
-				self.printerState.filamentRemainingString("NaN")
-				self.settings.settings.plugins.filament_scale.lastknownweight("Error")
-			} else {
-				weight = self.getWeight(message)
-				if (Number.isNaN(weight)){
-					error_message = {"tare": self.settings.settings.plugins.filament_scale.tare(),
-									"r_u": self.settings.settings.plugins.filament_scale.reference_unit(),
-									"parsed_r_u": parseInt(self.settings.settings.plugins.filament_scale.reference_unit()),
-									"message" : message,
-									"known_weight": self.calibrate_known_weight,
-									"spool_weight": self.settings.settings.plugins.filament_scale.spool_weight()}
-					console.log(error_message)
-					self.settings.settings.plugins.filament_scale.lastknownweight("Error")
+			
+			weight = message
+			if (Number.isNaN(weight)){
+				error_message = {"offset": self.settings.settings.plugins.filament_scale.offset(),
+								"cal_factor": self.settings.settings.plugins.filament_scale.cal_factor(),
+								"message" : message,
+								"known_weight": self.calibrate_known_weight,
+								"spool_weight": self.settings.settings.plugins.filament_scale.spool_weight()}
+				console.log(error_message)
+				// self.settings.settings.plugins.filament_scale.lastknownweight("Error")
+				self.printerState.filamentRemainingString("Calibration Error")				 
 					self.printerState.filamentRemainingString("Calibration Error")				 
-				} else{
-					self.settings.settings.plugins.filament_scale.lastknownweight(weight)
-					self.printerState.filamentRemainingString(self.getOutputWeight(weight))
-				}
+				self.printerState.filamentRemainingString("Calibration Error")				 
+			} else{
+				weight_after_spool = weight - self.settings.settings.plugins.filament_scale.spool_weight()
+				self.settings.settings.plugins.filament_scale.lastknownweight(weight_after_spool)
+				self.printerState.filamentRemainingString(weight_after_spool + "g")
 			}
 		};
-		self.getWeight = function(weight){
-			return Math.round((parseInt(weight) - self.settings.settings.plugins.filament_scale.tare()) / parseInt(self.settings.settings.plugins.filament_scale.reference_unit()))
-		}
-		self.getOutputWeight = function(weight){
-			return (Math.max(weight - self.settings.settings.plugins.filament_scale.spool_weight(), 0) + "g")
-		}
+
 		self.onStartup = function() {
             var element = $("#state").find(".accordion-inner [data-bind='text: stateString']");
             if (element.length) {
@@ -86,6 +50,27 @@ $(function() {
                 element.after("<br>" + text + ": <strong data-bind='text: filamentRemainingString'></strong>");
             }
         };
+
+		self.tare = function() {
+			self.sendReq("tare", 0, function() {})
+		};
+
+		self.calibrate = function() {
+			self.sendReq("calibrate", self.calibrate_known_weight, function() {})
+		};
+
+		self.sendReq = function(command, value, fn, errCb) {
+			$.ajax({
+				url: `/api/plugin/filament_scale?command=${command}&value=${value}`,
+				type: 'GET',
+				dataType: 'text',
+				error: function() {
+					if (errCb) {
+						errCb()
+					}
+				}
+			}).done((c)=>{if(fn){fn(c)}})
+		};
 		
 	}
 	

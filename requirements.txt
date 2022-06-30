@@ -15,3 +15,6 @@ pylint
 pytest-flake8
 octoprint
 Mock.GPIO
+smbus2
+PyNAU7802
+hx711
