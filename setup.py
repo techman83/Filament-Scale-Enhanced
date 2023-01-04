@@ -38,7 +38,8 @@ plugin_extras_require = {
         'pytest-pylint',
         'pylint',
         'pytest-flake8',
-        'Mock.GPIO'
+        'Mock.GPIO',
+        'paho-mqtt'
     ],
     'test': [
         'pytest',
