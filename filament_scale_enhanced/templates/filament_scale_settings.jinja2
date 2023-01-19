@@ -11,12 +11,7 @@
 		</div>
 	</div>
 
-	<div class='filament-scale-settings-no-connect' data-bind="visible: settings.settings.plugins.filament_scale.lastknownweight() == 'Error'">
-		<b>Error: No filament sensor detected.</b>
-		<br>Check your wiring and try again. The data pin should be connected to GPIO20, and the clock pin to GPIO21.
-	</div>
-
-	<div class='filament-scale-settings-container' data-bind="css: {'filament-scale-disabled': settings.settings.plugins.filament_scale.lastknownweight() == 'Error'}">
+	<div class='filament-scale-settings-container'>
 		<H4>Calibration</H4>
 
 

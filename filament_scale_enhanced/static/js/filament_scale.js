@@ -20,33 +20,12 @@ $(function() {
 
         // TODO: Implement your plugin's view model here.
 		self.printerState.filamentRemainingString = ko.observable("Loading...")
-		self.tare = function(){
-			
-			self.settings.settings.plugins.filament_scale.tare(self.last_raw_weight)
-			weight = self.getWeight(self.last_raw_weight)
-			self.settings.settings.plugins.filament_scale.lastknownweight(weight)
-			
-			self.printerState.filamentRemainingString(self.getOutputWeight(weight))
+		self.tare = function(){      
+      OctoPrint.simpleApiCommand("filament_scale", "tare", {"value": self.calibrate_known_weight})
+
 		};
 		self.calibrate = function(){
-			
-			weight = Math.round((self.last_raw_weight - self.settings.settings.plugins.filament_scale.tare()))
-			if (weight != 0 && self.calibrate_known_weight != 0){
-				self.settings.settings.plugins.filament_scale.reference_unit(weight / self.calibrate_known_weight)
-				weight = self.getWeight(self.last_raw_weight)
-				self.settings.settings.plugins.filament_scale.lastknownweight(weight)
-				self.printerState.filamentRemainingString(self.getOutputWeight(weight))
-			} else {
-				error_message = {"tare": self.settings.settings.plugins.filament_scale.tare(),
-								"r_u": self.settings.settings.plugins.filament_scale.reference_unit(),
-								"parsed_r_u": parseInt(self.settings.settings.plugins.filament_scale.reference_unit()),
-								"known_weight": self.calibrate_known_weight,
-								"spool_weight": self.settings.settings.plugins.filament_scale.spool_weight(),
-								"weight": weight,
-								"raw_weight":self.last_raw_weight}
-				console.log(error_message)
-			}
-			
+			OctoPrint.simpleApiCommand("filament_scale", "calibrate", {"value": self.calibrate_known_weight})			
 		}
 		self.onDataUpdaterPluginMessage = function(plugin, message){
 			if (plugin != "filament_scale") return;
@@ -69,15 +48,18 @@ $(function() {
 					self.printerState.filamentRemainingString("Calibration Error")				 
 				} else{
 					self.settings.settings.plugins.filament_scale.lastknownweight(weight)
-					self.printerState.filamentRemainingString(self.getOutputWeight(weight))
+					self.printerState.filamentRemainingString(self.getOutputWeight(weight)+ "g")
+          OctoPrint.simpleApiCommand("filament_scale", "filamentweight", {"value": self.getOutputWeight(weight)})          
+                                                                                 
 				}
 			}
 		};
 		self.getWeight = function(weight){
-			return Math.round((parseInt(weight) - self.settings.settings.plugins.filament_scale.tare()) / parseInt(self.settings.settings.plugins.filament_scale.reference_unit()))
+			//return Math.round((parseInt(weight) - self.settings.settings.plugins.filament_scale.tare()) / parseInt(self.settings.settings.plugins.filament_scale.reference_unit()))
+			return Math.round((parseInt(weight)))
 		}
 		self.getOutputWeight = function(weight){
-			return (Math.max(weight - self.settings.settings.plugins.filament_scale.spool_weight(), 0) + "g")
+			return (Math.max(weight - self.settings.settings.plugins.filament_scale.spool_weight(), 0))
 		}
 		self.onStartup = function() {
             var element = $("#state").find(".accordion-inner [data-bind='text: stateString']");
