@@ -1,0 +1,44 @@
+#include "ADS123X.h"
+
+#define SCALE_DOUT   19
+#define SCALE_SCLK   18
+#define SCALE_PDWN   5
+#define SCALE_GAIN0  16
+#define SCALE_GAIN1  17
+#define SCALE_SPEED  22
+#define SCALE_A0     0
+#define SCALE_A1     0
+
+
+// #define ADC_PDWN_PIN 5
+// #define ADC_DOUT_PIN 19
+// #define ADC_SCLK_PIN 18
+// #define ADC_GAIN0_PIN 16
+// #define ADC_GAIN1_PIN 17
+// #define ADC_SPEED_PIN 22
+// #define ADC_A0_PIN 0 //tied to GND AIN1 in PRO
+// #define ADC_TEMP_PIN 0 //tied to GND AIN1 in PRO
+
+ADS123X scale;
+
+
+void setup() {
+	
+  Serial.begin(115200);
+  Serial.println("ADS123X Demo");
+  pinMode(16, OUTPUT);
+  
+}
+
+
+int c=0;
+void loop() {
+for(int i=0; i < 24; i++) { //24 bits => 24 pulses
+    digitalWrite(16, HIGH);
+    delayMicroseconds(1);
+    digitalWrite(16, LOW);
+    delayMicroseconds(1);
+  }  
+  Serial.println(++c);
+  delay(100);
+}

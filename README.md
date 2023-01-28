@@ -2,6 +2,11 @@
 
 This plugin shows the FilamentWeight of an mqtt connected scale. Spool weight settings are in settings. Tare can requested via ui
 
+##HW
+**use PCB of jousis9** [https://github.com/jousis9/ESPresso-Scale]  
+
+##Firmware
+see firmaware folder
 
 ## Configuration
 

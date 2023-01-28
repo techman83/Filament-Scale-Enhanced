@@ -1,0 +1,9 @@
+.pio
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+.code-workspace
+EspressoScale.code-workspace
+Software/Firmware/src/credentials.h
+Software/Firmware/src/main.cpp_

@@ -1,0 +1,24 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"array": "cpp",
+			"deque": "cpp",
+			"string": "cpp",
+			"unordered_map": "cpp",
+			"unordered_set": "cpp",
+			"vector": "cpp",
+			"string_view": "cpp",
+			"initializer_list": "cpp",
+			"asyncudp.h": "c",
+			"atomic": "cpp",
+			"cstdint": "cpp",
+			"random": "cpp",
+			"*.tcc": "cpp"
+		}
+	}
+}
