@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import flask
 import octoprint.plugin
 
 from .fse_version import VERSION as __version__  # noqa: F401
@@ -13,19 +14,19 @@ except (ModuleNotFoundError, RuntimeError):
 
 
 # pylint: disable=too-many-ancestors
-class FilamentScalePlugin(octoprint.plugin.SettingsPlugin,
-                          octoprint.plugin.AssetPlugin,
-                          octoprint.plugin.TemplatePlugin,
-                          octoprint.plugin.StartupPlugin):
+class FilamentScalePlugin(
+    octoprint.plugin.SettingsPlugin,
+    octoprint.plugin.AssetPlugin,
+    octoprint.plugin.TemplatePlugin,
+    octoprint.plugin.StartupPlugin,
+):
 
     hx = None
     t = None
 
     @staticmethod
     def get_template_configs():
-        return [
-            dict(type="settings", custom_bindings=True)
-        ]
+        return [dict(type="settings", custom_bindings=True)]
 
     @staticmethod
     def get_settings_defaults():
@@ -35,7 +36,7 @@ class FilamentScalePlugin(octoprint.plugin.SettingsPlugin,
             spool_weight=200,
             clockpin=21,
             datapin=20,
-            lastknownweight=0
+            lastknownweight=0,
         )
 
     @staticmethod
@@ -43,8 +44,12 @@ class FilamentScalePlugin(octoprint.plugin.SettingsPlugin,
         return dict(
             js=["js/filament_scale.js"],
             css=["css/filament_scale.css"],
-            less=["less/filament_scale.less"]
+            less=["less/filament_scale.less"],
         )
+
+    def __init__(self):
+        self.mqtt_publish = lambda *args, **kwargs: None
+        self.mqtt = False
 
     def on_startup(self, host, port):  # pylint: disable=unused-argument
         self.hx = HX711(20, 21)
@@ -52,7 +57,41 @@ class FilamentScalePlugin(octoprint.plugin.SettingsPlugin,
         self.hx.reset()
         self.hx.power_up()
         self.t = octoprint.util.RepeatedTimer(3.0, self.check_weight)
+        self.t = octoprint.util.RepeatedTimer(10.0, self.send_weight_MQTT)
         self.t.start()
+
+    def on_after_startup(self):
+        helpers = self._plugin_manager.get_helpers("mqtt", "mqtt_publish")
+        if helpers:
+
+            if "mqtt_publish" in helpers:
+                self.mqtt_publish = helpers["mqtt_publish"]
+                self.mqtt = True
+                self._logger.info(
+                    "MQTT plugIn Helpers Found. Scale value will be published"
+                )
+            else:
+                self._logger.info(
+                    "MQTT plugIn Helpers Not Found Scale value will cannot be published"
+                )
+
+    def send_weight_MQTT(self):
+        self._logger.info("do send weight")
+        if self.mqtt is True:
+            baseTopic = self._settings.global_get(
+                ["plugins", "mqtt", "publish", "baseTopic"]
+            )
+            self._logger.info("baseTopic:" + baseTopic)
+            # default example has it but its easy for someone to leave it off.if we just add it, we get a blank level
+            if not baseTopic.endswith("/"):
+                baseTopic = baseTopic + "/"
+
+            topic = baseTopic + "plugin/" + self._identifier
+            payload = (
+                '{"last_known_weight":' + self._settings.get(["lastknownweight"]) + "}"
+            )
+
+            self.mqtt_publish(topic, payload)
 
     def check_weight(self):
         self.hx.power_up()
@@ -70,15 +109,13 @@ class FilamentScalePlugin(octoprint.plugin.SettingsPlugin,
             filament_scale=dict(
                 displayName="Filament Scale Plugin",
                 displayVersion=self._plugin_version,
-
                 # version check: github repository
                 type="github_release",
                 user="techman83",
                 repo="Filament-Scale-Enhanced",
                 current=self._plugin_version,
-
                 # update method: pip
-                pip="https://github.com/techman83/Filament-Scale-Enhanced/releases/latest/download/Filament_Scale_Enhanced.zip"  # noqa: E501
+                pip="https://github.com/techman83/Filament-Scale-Enhanced/releases/latest/download/Filament_Scale_Enhanced.zip",  # noqa: E501
             )
         )
 
