@@ -22,6 +22,7 @@ class FilamentScalePlugin(
 
     hx = None
     t = None
+    tq = None
 
     @staticmethod
     def get_template_configs():
@@ -51,52 +52,65 @@ class FilamentScalePlugin(
         self.mqtt = False
 
     def on_startup(self, host, port):  # pylint: disable=unused-argument
-        self.hx = HX711(20, 21)
-        self.hx.set_reading_format("LSB", "MSB")
-        self.hx.reset()
-        self.hx.power_up()
-        self.t = octoprint.util.RepeatedTimer(3.0, self.check_weight)
-        self.t = octoprint.util.RepeatedTimer(10.0, self.send_weight_MQTT)
-        self.t.start()
+        try:
+            self.hx = HX711(20, 21)
+            self.hx.set_reading_format("LSB", "MSB")
+            self.hx.reset()
+            self.hx.power_up()
+            self.t = octoprint.util.RepeatedTimer(3.0, self.check_weight)
+            self.t.start()
+            self.tq = octoprint.util.RepeatedTimer(10.0, self.send_weight_MQTT)
+            self.tq.start()
+        except Exception as err:
+            self._logger.exception(err)
 
     def on_after_startup(self):
         helpers = self._plugin_manager.get_helpers("mqtt", "mqtt_publish")
         if helpers:
-
             if "mqtt_publish" in helpers:
                 self.mqtt_publish = helpers["mqtt_publish"]
                 self.mqtt = True
-                self._logger.info(
+                self._logger.debug(
                     "MQTT plugIn Helpers Found. Scale value will be published"
                 )
             else:
-                self._logger.info(
+                self._logger.debug(
                     "MQTT plugIn Helpers Not Found Scale value will cannot be published"
                 )
 
     def send_weight_MQTT(self):
-        self._logger.info("do send weight")
+        self._logger.debug("Doing send_weight_MQTT")
         if self.mqtt is True:
-            baseTopic = self._settings.global_get(
-                ["plugins", "mqtt", "publish", "baseTopic"]
-            )
-            self._logger.info("baseTopic:" + baseTopic)
-            # default example has it but its easy for someone to leave it off.if we just add it, we get a blank level
-            if not baseTopic.endswith("/"):
-                baseTopic = baseTopic + "/"
+            try:
+                baseTopic = self._settings.global_get(
+                    ["plugins", "mqtt", "publish", "baseTopic"]
+                )
 
-            topic = baseTopic + "plugin/" + self._identifier
-            payload = (
-                '{"last_known_weight":' + self._settings.get(["lastknownweight"]) + "}"
-            )
+                self._logger.debug("baseTopic:" + baseTopic)
+                # default example has it but its easy for someone to leave it off.if we just add it, we get a blank level
+                if not baseTopic.endswith("/"):
+                    baseTopic = baseTopic + "/"
 
-            self.mqtt_publish(topic, payload)
+                topic = baseTopic + "plugin/" + self._identifier
+                payload = (
+                    '{"last_known_weight":'
+                    + str(self._settings.get(["lastknownweight"]))
+                    + "}"
+                )
+
+                self.mqtt_publish(topic, payload)
+            except Exception as err:
+                self._logger.exception(err)
 
     def check_weight(self):
-        self.hx.power_up()
-        v = self.hx.read()
-        self._plugin_manager.send_plugin_message(self._identifier, v)
-        self.hx.power_down()
+        self._logger.debug("Begin hxRead")
+        try:
+            self.hx.power_up()
+            v = self.hx.read()
+            self._plugin_manager.send_plugin_message(self._identifier, v)
+            self.hx.power_down()
+        except Exception as err:
+            self._logger.exception(err)
 
     # pylint: disable=line-too-long
     def get_update_information(self):
