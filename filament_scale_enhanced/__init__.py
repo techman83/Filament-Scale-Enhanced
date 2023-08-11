@@ -1,7 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-import flask
 import octoprint.plugin
 
 from .fse_version import VERSION as __version__  # noqa: F401
